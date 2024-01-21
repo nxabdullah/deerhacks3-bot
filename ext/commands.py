@@ -19,7 +19,8 @@ class Commands(commands.Cog):
             "volunteer": 1100893133581070476
         }
 
-        user = await self.bot.db.fetchrow(f"SELECT status FROM users WHERE discord_id = $1", str(member.id))
+        async with self.bot.db_pool.acquire() as connection:
+            user = await connection.fetchrow(f"SELECT status FROM users WHERE discord_id = $1", str(member.id))
 
         if user and user['status'] in roles:
             await member.edit(roles=[member.guild.get_role(roles[user['status']])])
