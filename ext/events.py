@@ -2,15 +2,49 @@ from discord.ext import commands
 import discord
 import asyncio
 import os
+from datetime import datetime, timedelta
 
 class Events(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.selected_role_id = 1192983889807933490
 
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
+
         if before.roles != after.roles:
+
+            before_roles = list(map(lambda x: x.id, before.roles))
+            after_roles = list(map(lambda x: x.id, after.roles))
+
+            if self.selected_role_id not in before_roles and self.selected_role_id in after_roles:
+                await after.send(embed=discord.Embed(
+                    title="Congratulations! You have been accepted into DeerHacks. Please check your email for the full details on what to do next.",
+                    color=discord.Colour.green(),
+                    type="rich"
+                ))
+
+                await discord.utils.sleep_until(datetime.now() + timedelta(days=4))
+
+                await after.send(embed=discord.Embed(
+                    title="If you have already RSVP'd you may ignore this message",
+                    description="This is a 24 hour reminder to RSVP for DeerHacks.",
+                    color=discord.Colour.purple(),
+                    type="rich"
+                ))
+
+                await discord.utils.sleep_until(datetime.now() + timedelta(days=1))
+
+                await after.send(embed=discord.Embed(
+                    title="If you have already RSVP'd you may ignore this message",
+                    description="Your RSVP deadline has expired and you may no longer RSVP for DeerHacks.",
+                    color=discord.Colour.dark_red(),
+                    type="rich"
+                ))
+
+                return
+
 
             await after.send(embed=discord.Embed(
                 title="Your roles were updated",
