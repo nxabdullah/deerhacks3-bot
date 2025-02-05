@@ -1,6 +1,10 @@
 from discord.ext import commands
 import discord
 import asyncio
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 class Commands(commands.Cog):
 
@@ -10,23 +14,45 @@ class Commands(commands.Cog):
     async def synchronize(self, member) -> str:
 
         roles = {
-            "pending": 1087192865186254999,
-            "registering": 1087193230157819925,
-            "applied": 1192983763995602964,
-            "selected": 1192983889807933490,
-            "accepted": 1192984014571704330,
-            "attended": 1192984114987548722,
-            "volunteer": 1100893133581070476
+            "pending": 1328545548080250993,
+            "registering": 1328545670713442324,
+            "applied": 1328545785868058775,
+            "selected": 1328545833129345034,
+            "accepted": 1328545968370614412,
+            "attended": 1328546008493199380,
+            "volunteer": 1328546105947979877
         }
 
         async with self.bot.db_pool.acquire() as connection:
             user = await connection.fetchrow(f"SELECT status FROM users WHERE discord_id = $1", str(member.id))
 
-        if user and user['status'] in roles:
-            await member.edit(roles=[member.guild.get_role(roles[user['status']])])
-            return "Successfully synchronized"
+        if user:
+            logger.debug(f"Fetched user status from DB: {user}")
+        else:
+            logger.warning(f"No user found in DB for {member.id}")
+            return "Failed to synchronize: User not found in DB"
 
-        return "Failed to synchronize"
+        if user['status'] in roles:
+            role_id = roles[user['status']]
+            role = member.guild.get_role(role_id)
+
+            if role:
+                logger.debug(f"Assigning role {role.name} ({role.id}) to {member.name} ({member.id})")
+                try:
+                    await member.edit(roles=[role])
+                    logger.debug(f"Successfully assigned role {role.name} to {member.name}")
+                    return f"Successfully synchronized role {role.name} for {member.name}"
+                except discord.Forbidden:
+                    logger.error(f"Permission issue: Cannot edit roles for {member.name}")
+                    return "Failed to synchronize due to insufficient permissions"
+                except discord.HTTPException as e:
+                    logger.error(f"HTTPException: {e}")
+                    return "Failed to synchronize due to an API error"
+            else:
+                logger.warning(f"Role {role_id} not found in guild")
+                return "Failed to synchronize due to missing role"
+
+        return "Failed to synchronize: Unknown issue"
 
 
 
