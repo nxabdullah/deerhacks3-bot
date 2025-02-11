@@ -2,8 +2,9 @@ import discord
 import os
 from discord.ext import commands
 from dotenv import load_dotenv, find_dotenv
-
+import logging
 load_dotenv(find_dotenv())
+logging.basicConfig(level=logging.INFO)
 
 
 class DeerHacks(commands.Bot):
@@ -22,7 +23,8 @@ class DeerHacks(commands.Bot):
             'ext.startup',
             'ext.errors',
             'ext.attendance',
-            'ext.sync'
+            'ext.sync',
+            'ext.volunteers'
         ]
 
     async def setup_hook(self):

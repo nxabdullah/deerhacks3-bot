@@ -18,7 +18,6 @@ class Startup(commands.Cog):
             max_size=10  # Maximum number of connections in the pool
         )
 
-
     @commands.Cog.listener()
     async def on_ready(self):
         print(f'Logged in as {self.bot.user.name} | {self.bot.user.id}')
