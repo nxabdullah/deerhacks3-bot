@@ -21,8 +21,8 @@ class DeerHacks(commands.Bot):
         self.initial_extensions = [
             'ext.startup',
             'ext.errors',
-            'ext.commands',
-            'ext.events'
+            'ext.attendance',
+            'ext.sync'
         ]
 
     async def setup_hook(self):

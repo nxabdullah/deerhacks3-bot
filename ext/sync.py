@@ -1,30 +1,30 @@
-from discord.ext import commands
 import discord
-import asyncio
+from discord.ext import commands
 import logging
+import os
 
-logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-class Commands(commands.Cog):
-
+class Sync(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     async def synchronize(self, member) -> str:
-
         roles = {
-            "pending": 1328545548080250993,
-            "registering": 1328545670713442324,
-            "applied": 1328545785868058775,
-            "selected": 1328545833129345034,
-            "accepted": 1328545968370614412,
-            "attended": 1328546008493199380,
-            "volunteer": 1328546105947979877
+            "pending": int(os.environ["PENDING_ROLE_ID"]),
+            "registering": int(os.environ["REGISTERING_ROLE_ID"]),
+            "applied": int(os.environ["APPLIED_ROLE_ID"]),
+            "selected": int(os.environ["SELECTED_ROLE_ID"]),
+            "accepted": int(os.environ["ACCEPTED_ROLE_ID"]),
+            "attended": int(os.environ["ATTENDED_ROLE_ID"]),
+            "volunteer": int(os.environ["VOLUNTEER_ROLE_ID"])
         }
 
+        # Make sure your bot instance has an attribute `db_pool`
         async with self.bot.db_pool.acquire() as connection:
-            user = await connection.fetchrow(f"SELECT status FROM users WHERE discord_id = $1", str(member.id))
+            user = await connection.fetchrow(
+                "SELECT status FROM users WHERE discord_id = $1", str(member.id)
+            )
 
         if user:
             logger.debug(f"Fetched user status from DB: {user}")
@@ -54,28 +54,22 @@ class Commands(commands.Cog):
 
         return "Failed to synchronize: Unknown issue"
 
-
-
     @commands.dm_only()
     @commands.cooldown(2, 7200, commands.BucketType.user)
-    @commands.command(name="sync", description="Command to sync dashboard status with discord role", aliases=['s'])
+    @commands.command(name="sync", description="Sync dashboard status with your discord role", aliases=['s'])
     async def sync(self, ctx):
-
         if ctx.author.mutual_guilds:
             guild = ctx.author.mutual_guilds[0]
             member = guild.get_member(ctx.author.id)
-            await self.synchronize(member)
+            message = await self.synchronize(member)
+            await ctx.send(message)
 
     @commands.guild_only()
-    @commands.has_permissions(administrator=True)
-    @commands.command(name="adminsync", description="Same as sync but can be applied to other users", aliases=['as'])
+    @commands.has_permissions(manage_roles=True)
+    @commands.command(name="adminsync", description="Sync another user's dashboard status", aliases=['as'])
     async def adminsync(self, ctx, member: discord.Member):
         message = await self.synchronize(member)
         await ctx.channel.send(message)
 
-
-
-
-
 async def setup(bot):
-    await bot.add_cog(Commands(bot))
+    await bot.add_cog(Sync(bot))
