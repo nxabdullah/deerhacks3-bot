@@ -111,5 +111,82 @@ class Volunteers(commands.Cog):
         logger.info("Sending mentor table")
         await ctx.send(mentor_text)
 
+    @commands.command(name="help_saurabh", help="Assign volunteer role to all volunteers and mentor role to all mentors from the config.")
+    @commands.has_permissions(administrator=True)
+    async def help_saurabh(self, ctx):
+        logger.info("help_saurabh command triggered by %s", ctx.author)
+        guild = ctx.guild
+        if guild is None:
+            await ctx.send("This command can only be run in a server.")
+            return
+
+        try:
+            volunteer_role_id = int(os.environ["VOLUNTEER_ROLE_ID"])
+            mentor_role_id = int(os.environ["MENTOR_ROLE_ID"])
+        except KeyError as e:
+            await ctx.send(f"Missing environment variable: {e}")
+            return
+
+        volunteer_role = guild.get_role(volunteer_role_id)
+        mentor_role = guild.get_role(mentor_role_id)
+
+        if volunteer_role is None:
+            await ctx.send("Volunteer role not found in this guild.")
+            return
+        if mentor_role is None:
+            await ctx.send("Mentor role not found in this guild.")
+            return
+
+        # Helper function: find a member by username.
+        def find_member(name, full_match=False):
+            for member in guild.members:
+                if full_match:
+                    if f"{member.name}#{member.discriminator}" == name:
+                        return member
+                else:
+                    if member.name == name:
+                        return member
+            return None
+
+        assigned_volunteers = 0
+        not_found_volunteers = []
+        for username in self.volunteers:
+            member = find_member(username, full_match=False)
+            if member:
+                try:
+                    await member.add_roles(volunteer_role)
+                    logger.info("Assigned volunteer role to %s", username)
+                    assigned_volunteers += 1
+                except Exception as e:
+                    logger.error("Error assigning volunteer role to %s: %s", username, e)
+            else:
+                not_found_volunteers.append(username)
+
+        assigned_mentors = 0
+        not_found_mentors = []
+        for username in self.mentors:
+            # For mentors, use a full match if the username includes a '#'
+            if "#" in username:
+                member = find_member(username, full_match=True)
+            else:
+                member = find_member(username, full_match=False)
+            if member:
+                try:
+                    await member.add_roles(mentor_role)
+                    logger.info("Assigned mentor role to %s", username)
+                    assigned_mentors += 1
+                except Exception as e:
+                    logger.error("Error assigning mentor role to %s: %s", username, e)
+            else:
+                not_found_mentors.append(username)
+
+        response = f"Assigned volunteer role to {assigned_volunteers} volunteers and mentor role to {assigned_mentors} mentors.\n"
+        if not_found_volunteers:
+            response += f"Volunteers not found: {', '.join(not_found_volunteers)}\n"
+        if not_found_mentors:
+            response += f"Mentors not found: {', '.join(not_found_mentors)}\n"
+        await ctx.send(response)
+
+
 async def setup(bot):
     await bot.add_cog(Volunteers(bot))
