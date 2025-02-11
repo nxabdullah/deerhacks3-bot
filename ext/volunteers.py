@@ -3,6 +3,7 @@ from discord.ext import commands
 import logging
 import json
 import os
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -159,6 +160,9 @@ class Volunteers(commands.Cog):
                     assigned_volunteers += 1
                 except Exception as e:
                     logger.error("Error assigning volunteer role to %s: %s", username, e)
+                
+                # Throttle: wait for 1 second after each role assignment
+                await asyncio.sleep(0.25)
             else:
                 not_found_volunteers.append(username)
 
